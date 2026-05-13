@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Pooranman Terminal</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<style>
+
+:root{
+  --bg:#010701;
+  --panel:#051105;
+  --neon:#00ff88;
+  --soft:#77ffc4;
+  --border:rgba(0,255,120,.12);
+}
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+html{
+  scroll-behavior:smooth;
+}
+
+body{
+  background:var(--bg);
+  color:var(--neon);
+  overflow:hidden;
+  height:100vh;
+  font-family:'Share Tech Mono',monospace;
+}
+
+canvas{
+  position:fixed;
+  inset:0;
+  z-index:0;
+}
+
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  background:
+  repeating-linear-gradient(
+    transparent 0px,
+    rgba(0,255,120,.03) 2px,
+    transparent 4px
+  );
+  animation:scan 8s linear infinite;
+  pointer-events:none;
+  z-index:1;
+}
+
+@keyframes scan{
+  from{
+    transform:translateY(-100%);
+  }
+  to{
+    transform:translateY(100%);
+  }
+}
+
+.wrapper{
+  position:relative;
+  z-index:5;
+  width:100%;
+  height:100vh;
+  padding:14px;
+}
+
+.terminal{
+  width:100%;
+  height:90%;
+  margin: 20px;
+  display:flex;
+  flex-direction:column;
+  border:1px solid var(--border);
+  border-radius:16px;
+  overflow:hidden;
+  background:rgba(0,0,0,.76);
+  backdrop-filter:blur(6px);
+  box-shadow:
+  0 0 25px rgba(0,255,120,.06),
+  inset 0 0 25px rgba(0,255,120,.02);
+}
+
+.topbar{
+  height:60px;
+  flex-shrink:0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 18px;
+  background:#001300;
+  border-bottom:1px solid var(--border);
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.dot{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  background:var(--neon);
+  box-shadow:0 0 10px var(--neon);
+  animation:pulse 1s infinite alternate;
+}
+
+@keyframes pulse{
+  from{
+    opacity:.4;
+  }
+  to{
+    opacity:1;
+  }
+}
+
+.title{
+  font-size:18px;
+  font-family:'Orbitron',sans-serif;
+  letter-spacing:3px;
+  text-shadow:
+  0 0 8px var(--neon),
+  0 0 18px var(--neon);
+}
+
+.status{
+  color:var(--soft);
+  font-size:12px;
+}
+
+.output{
+  flex:1;
+  overflow:auto;
+  padding:18px;
+  font-size:14px;
+  line-height:1.7;
+  will-change:transform;
+}
+
+.output::-webkit-scrollbar{
+  width:7px;
+}
+
+.output::-webkit-scrollbar-thumb{
+  background:var(--neon);
+  border-radius:10px;
+}
+
+.line{
+  margin-bottom:6px;
+  word-break:break-word;
+}
+
+.cmd{
+  color:#00ff88;
+}
+
+.success{
+  color:#7dffbf;
+}
+
+.error{
+  color:#ff5577;
+}
+
+.warn{
+  color:#ffd166;
+}
+
+.inputbox{
+  height:62px;
+  flex-shrink:0;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:0 18px;
+  border-top:1px solid var(--border);
+  background:#001300;
+  position: sticky;
+}
+
+.prompt{
+  color:var(--neon);
+  white-space:nowrap;
+}
+
+input{
+  width:100%;
+  background:transparent;
+  border:none;
+  outline:none;
+  color:var(--neon);
+  font-size:15px;
+  font-family:'Share Tech Mono',monospace;
+}
+
+input::placeholder{
+  color:#00884d;
+}
+
+.table-wrap{
+  overflow:auto;
+  border:1px solid rgba(0,255,120,.08);
+  border-radius:12px;
+  margin:10px 0 20px;
+}
+
+.table-wrap::-webkit-scrollbar{
+  height:8px;
+  width:8px;
+}
+
+.table-wrap::-webkit-scrollbar-thumb{
+  background:#00ff88;
+  border-radius:10px;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:900px;
+}
+
+th{
+  background:#002000;
+  color:var(--neon);
+  padding:12px;
+  text-align:left;
+  border-bottom:1px solid rgba(0,255,120,.1);
+  font-size:12px;
+  position:sticky;
+  top:0;
+}
+
+td{
+  padding:12px;
+  color:#b7ffdf;
+  border-bottom:1px solid rgba(0,255,120,.05);
+  font-size:12px;
+}
+
+tr:hover{
+  background:rgba(0,255,120,.03);
+}
+
+.highlight{
+  background:#ff004c;
+  color:#fff;
+  padding:2px 4px;
+  border-radius:4px;
+}
+
+.banner{
+  color:var(--neon);
+  line-height:1.3;
+  white-space:pre-wrap;
+  margin-bottom:18px;
+  text-shadow:
+  0 0 8px var(--neon);
+}
+
+@media(max-width:768px){
+
+  .title{
+    font-size:13px;
+  }
+
+  .status{
+    display:none;
+  }
+
+  .output{
+    font-size:12px;
+    padding:14px;
+  }
+
+  .prompt{
+    font-size:12px;
+  }
+
+  input{
+    font-size:13px;
+  }
+
+  td,
+  th{
+    font-size:10px;
+    padding:9px;
+  }
+
+}
+
+</style>
+</head>
+
+<body>
+
+<canvas id="matrix"></canvas>
+
+<div class="wrapper">
+
+<div class="terminal">
+
+<div class="topbar">
+
+<div class="brand">
+
+<div class="dot"></div>
+
+<div class="title">
+POORANMAN TERMINAL
+</div>
+
+</div>
+
+<div class="status" id="status">
+INITIALIZING...
+</div>
+
+</div>
+
+<div class="output" id="output"></div>
+
+<div class="inputbox">
+
+<div class="prompt">
+root@pooranman:~$
+</div>
+
+<input
+type="text"
+id="command"
+autocomplete="off"
+spellcheck="false"
+placeholder="ENTER COMMAND..."
+>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCWXc27Cmhtz_fMKf2H5w2buAYOZExRP84",
+  authDomain: "real-time-chat-d041d.firebaseapp.com",
+  databaseURL: "https://real-time-chat-d041d-default-rtdb.firebaseio.com",
+  projectId: "real-time-chat-d041d",
+  storageBucket: "real-time-chat-d041d.appspot.com",
+  messagingSenderId: "353320921316",
+  appId: "1:353320921316:web:51511054448f4fc8d624f1"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const db = firebase.database();
+
+const canvas =
+document.getElementById('matrix');
+
+const ctx =
+canvas.getContext('2d');
+
+function resize(){
+
+  canvas.width =
+  innerWidth;
+
+  canvas.height =
+  innerHeight;
+
+}
+
+resize();
+
+addEventListener(
+'resize',
+resize
+);
+
+const chars =
+'01アカサタナハマヤャラワ';
+
+const size = 15;
+
+let cols =
+Math.floor(innerWidth / size);
+
+let drops =
+Array(cols).fill(1);
+
+function matrix(){
+
+  ctx.fillStyle =
+  'rgba(1,7,1,.08)';
+
+  ctx.fillRect(
+  0,
+  0,
+  canvas.width,
+  canvas.height
+  );
+
+  ctx.fillStyle =
+  '#00ff88';
+
+  ctx.font =
+  size + 'px monospace';
+
+  for(let i=0;i<drops.length;i++){
+
+    const text =
+    chars[
+    (Math.random() *
+    chars.length) | 0
+    ];
+
+    ctx.fillText(
+    text,
+    i * size,
+    drops[i] * size
+    );
+
+    if(
+    drops[i] * size >
+    canvas.height &&
+    Math.random() > .975
+    ){
+
+      drops[i] = 0;
+
+    }
+
+    drops[i]++;
+
+  }
+
+  requestAnimationFrame(matrix);
+
+}
+
+matrix();
+
+const output =
+document.getElementById('output');
+
+const input =
+document.getElementById('command');
+
+const statusBox =
+document.getElementById('status');
+
+let database = [];
+let headers = [];
+let cmdHistory = [];
+let historyIndex = -1;
+
+function line(text,type=''){
+
+  const div =
+  document.createElement('div');
+
+  div.className =
+  `line ${type}`;
+
+  div.innerHTML =
+  text;
+
+  output.appendChild(div);
+
+  output.scrollTop =
+  output.scrollHeight;
+
+}
+
+function banner(){
+
+line(`
+<div class="banner">
+
+
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⢿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡷⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⢠⡾⠁⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡇⠙⢧⡀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⣰⡟⠀⠀⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⡇⠀⠘⢷⡄⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⢰⡟⠀⠀⠀⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡇⠀⠀⠘⣷⡀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⢀⣿⠁⠀⠀⠀⢧⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡇⠀⠀⠀⠙⣷⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⣼⡏⠀⠀⠀⠀⣸⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢰⡇⠀⠀⠀⠀⣿⡇⠀⠀⠀⠀
+⠀⠀⠀⠀⣿⠃⠀⠀⠀⠀⠸⡇⠀⠀⠀⠀⠀⠀⢀⣤⣤⣴⣶⡿⠿⠛⠛⠛⠛⠛⠛⠛⠛⠛⠻⠶⣶⣤⣄⡀⠀⠀⠀⠀⠀⠀⣸⠁⠀⠀⠀⠀⢹⣿⠀⠀⠀⠀
+⠀⠀⠀⠀⣿⡄⠀⠀⠀⠀⠀⢹⡄⠀⠀⣠⣴⣿⠛⠋⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠻⣿⣿⣿⣤⡀⠀⠀⣰⠇⠀⠀⠀⠀⠀⢸⣿⠀⠀⠀⠀
+⠀⠀⠀⠀⣿⡇⠀⠀⠀⠀⠀⠀⠙⠒⠼⣿⣿⢿⣷⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⣿⣿⣿⣿⡶⠚⠁⠀⠀⠀⠀⠀⠀⣾⡿⠀⠀⠀⠀
+⠀⠀⠀⠀⢻⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⢻⡏⠀⢿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢹⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⢀⣿⠃⠀⠀⠀⠀
+⣾⠀⠀⠀⠈⣿⣇⠀⠀⠀⠀⠀⠀⠀⠀⠘⣿⠀⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣾⣿⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀⣾⡿⠀⠀⠀⢀⣴
+⣿⣧⠀⠀⠀⠸⣿⣆⠀⠀⠀⠀⠀⠀⠀⠀⣿⡄⠸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣤⣾⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⣸⣿⠁⠀⠀⢀⣾⡏
+⣿⣿⣷⡀⠀⠀⠹⣿⣆⠀⠀⠀⠀⠀⠀⣰⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣤⣤⣤⣤⣶⣿⡿⠟⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⢀⣼⣿⠃⠀⠀⣠⣿⣿⡇
+⣿⡙⢿⣿⣦⡀⠀⠸⣿⣷⣄⣀⠀⠀⣴⣿⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⢿⣿⣿⣧⡀⠀⠀⠀⣠⣾⡿⠁⠀⢀⣴⣿⡟⢹⡇
+⢹⡇⠀⠻⣿⣿⣆⡀⢸⣿⣿⣿⣿⣿⠿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣄⠀⠀⠀⠀⠈⠛⠿⢿⣿⣶⣶⣾⣿⣿⠁⢀⣴⣿⣿⠋⠀⢸⠁
+⠸⣿⠀⠀⠙⢿⣿⣷⣽⣿⣿⣿⡿⠁⠀⠀⠀⠀⠀⠀⠀⢀⡼⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⣇⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⢹⣿⣿⣴⣾⣿⠟⠁⠀⠀⣾⠀
+⠀⣿⡀⠀⠀⠀⠙⢿⣿⣿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⣠⡾⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⢧⡀⠀⠀⠀⠀⠀⠀⠀⠀⠸⣿⣿⣿⡿⠋⠀⠀⠀⠀⣿⠀
+⠀⠹⣷⠀⠀⠀⠀⠈⣽⣿⣿⣿⣧⠀⠀⠀⠀⠀⠤⠞⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⠲⠦⠀⠀⠀⠀⠀⠀⠀⢻⣿⡏⠀⠀⠀⠀⠀⣰⠃⠀
+⠀⠀⢿⣧⡀⠀⠀⠀⣿⣿⣿⣿⣿⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡀⠀⠀⠸⣿⡇⠀⠀⠀⠀⣀⠟⠀⠀
+⠀⠀⠀⠙⢿⣦⣀⠀⢹⣿⣿⣿⣿⣿⣿⣶⣦⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⡶⠚⠉⠁⠀⠀⠀⣿⡇⠀⠀⢀⡶⠋⠀⠀⠀
+⠀⠀⠀⠀⠀⠙⢿⣷⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⡻⢦⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡀⠀⠀⠀⠀⠀⣠⠶⢻⣿⠁⠀⠀⠀⠀⠀⠀⢸⡇⣀⡴⠋⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠉⢻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⡀⠈⠛⢦⣀⣀⣀⣾⠀⠀⠀⠀⣿⣄⣀⣀⡴⠋⠁⢠⣿⠏⠀⠀⠀⠀⠀⠀⠀⣼⡟⠉⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠈⣿⣿⣿⣿⣿⠟⠋⠉⠉⠛⠿⠶⠶⠛⠉⠉⠻⣿⡄⠀⠀⢰⣿⠏⠉⠉⠛⠶⠶⠟⠉⠀⠀⠀⠀⠀⠀⠀⢰⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⣿⣿⣿⣧⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣇⠀⠀⣼⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⡿⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⠻⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠹⣿⠀⠀⣿⣿⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣴⠟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠹⣿⡄⠀⠀⠀⠀⠀⠀⠀⠀⣠⡤⠀⠀⠻⠀⠀⣿⣿⣷⣤⣀⠀⠀⠀⠀⠀⠀⠀⠀⣼⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⣦⣤⣀⣀⣀⣤⡴⢿⣿⡀⠀⠀⠀⠀⠀⣿⣿⣿⣿⣿⠓⣦⣤⣀⣀⣠⣤⣶⣿⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢹⣿⣿⣿⣿⣿⣿⣯⡀⠀⠙⠛⢷⡀⠀⠀⠀⢸⣿⠟⠛⠉⠀⢠⣿⣿⣿⣿⣿⣿⣿⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⡙⠿⠿⠋⢻⠙⣆⠀⠀⠀⢷⣄⠀⢀⣨⡟⠀⠀⢀⡼⢋⡏⢻⣿⠟⣡⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⣿⡄⠀⠀⢸⡷⣬⡳⢦⣤⣤⣈⣉⣉⣁⣠⣤⡴⢋⡴⢾⠃⠀⠀⣤⣿⣿⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⣿⣿⣿⣄⠀⠀⢧⠘⣷⡖⠦⣤⣤⣀⣀⣤⡤⠴⢧⡼⢀⡎⠀⠀⣰⣿⣿⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⣿⣿⣿⡆⠀⠘⣇⠘⢧⠀⠀⠀⠀⠀⠀⠀⠠⡜⢃⡼⠁⠀⣼⣿⣿⡿⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⣿⣿⡇⠀⠀⠈⠙⠛⠓⠒⠒⠒⠒⠒⠒⠛⠛⠉⠀⠀⠀⣿⣿⡿⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⢿⣷⡀⠀⠀⠠⠔⠒⠛⠛⠿⠿⠛⠓⠒⠢⠄⠀⠀⢠⣿⡿⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⢿⣧⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣾⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠹⣷⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⡾⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠛⠿⣷⣶⣶⣶⣶⣶⣶⣶⣶⣾⠿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠛⠛⠛⠛⠛⠋⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⣀⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+
+
+
+
+</div>
+`);
+
+}
+
+function escapeHtml(text){
+
+  return text.replace(
+  /[.*+?^${}()|[\]\\]/g,
+  '\\$&'
+  );
+
+}
+
+function table(data,terms=[]){
+
+if(!data.length){
+
+line(
+'NO MATCH FOUND',
+'error'
+);
+
+return;
+
+}
+
+const wrap =
+document.createElement('div');
+
+wrap.className =
+'table-wrap';
+
+const tbl =
+document.createElement('table');
+
+const thead =
+document.createElement('thead');
+
+const tbody =
+document.createElement('tbody');
+
+const trh =
+document.createElement('tr');
+
+headers.forEach(h=>{
+
+const th =
+document.createElement('th');
+
+th.textContent = h;
+
+trh.appendChild(th);
+
+});
+
+thead.appendChild(trh);
+
+const limit =
+data.slice(0,300);
+
+for(let i=0;i<limit.length;i++){
+
+const tr =
+document.createElement('tr');
+
+for(let j=0;j<headers.length;j++){
+
+const td =
+document.createElement('td');
+
+let value =
+String(
+limit[i][headers[j]] ?? ''
+);
+
+for(let k=0;k<terms.length;k++){
+
+const esc =
+escapeHtml(terms[k]);
+
+value =
+value.replace(
+new RegExp(esc,'gi'),
+m=>
+`<span class="highlight">${m}</span>`
+);
+
+}
+
+td.innerHTML =
+value;
+
+tr.appendChild(td);
+
+}
+
+tbody.appendChild(tr);
+
+}
+
+tbl.appendChild(thead);
+
+tbl.appendChild(tbody);
+
+wrap.appendChild(tbl);
+
+output.appendChild(wrap);
+
+line(
+`${data.length} RECORDS FOUND`,
+'success'
+);
+
+output.scrollTop =
+output.scrollHeight;
+
+}
+
+async function load(){
+
+try{
+
+const snap =
+await db
+.ref('neuralgrid/history')
+.once('value');
+
+const data =
+snap.val();
+
+if(!data){
+
+statusBox.innerHTML =
+'NO DATABASE';
+
+line(
+'DATABASE EMPTY',
+'error'
+);
+
+return;
+
+}
+
+database = [];
+
+Object.values(data)
+.forEach(file=>{
+
+if(file.rows){
+
+database.push(
+...file.rows
+);
+
+}
+
+});
+
+if(database.length){
+
+headers =
+Object.keys(database[0]);
+
+statusBox.innerHTML =
+'DATABASE READY';
+
+line(
+'CONNECTION ESTABLISHED',
+'success'
+);
+
+line(
+`${database.length} RECORDS INDEXED`,
+'success'
+);
+
+}
+
+}
+
+catch(err){
+
+statusBox.innerHTML =
+'FAILED';
+
+line(
+'DATABASE CONNECTION FAILED',
+'error'
+);
+
+}
+
+}
+
+function searchData(terms){
+
+if(!terms.length){
+
+line(
+'SEARCH KEYWORDS REQUIRED',
+'warn'
+);
+
+return;
+
+}
+
+const filtered =
+database.filter(row=>{
+
+const text =
+headers.map(h=>
+String(row[h] || '')
+.toLowerCase()
+).join(' ');
+
+for(let i=0;i<terms.length;i++){
+
+if(
+!text.includes(
+terms[i].toLowerCase()
+)
+){
+
+return false;
+
+}
+
+}
+
+return true;
+
+});
+
+table(
+filtered,
+terms
+);
+
+}
+
+function execute(command){
+
+const cmd =
+command.trim();
+
+if(!cmd) return;
+
+cmdHistory.push(cmd);
+
+historyIndex =
+cmdHistory.length;
+
+line(
+`root@pooranman:~$ ${cmd}`,
+'cmd'
+);
+
+const parts =
+cmd.split(/\s+/);
+
+const action =
+parts[0].toLowerCase();
+
+switch(action){
+
+case 'help':
+
+line(`
+AVAILABLE COMMANDS
+
+help
+search
+all
+clear
+cls
+count
+headers
+history
+status
+time
+date
+whoami
+sample
+banner
+reload
+exit
+`);
+
+break;
+
+case 'search':
+
+searchData(
+parts.slice(1)
+);
+
+break;
+
+case 'all':
+
+table(database);
+
+break;
+
+case 'clear':
+case 'cls':
+
+output.innerHTML = '';
+
+break;
+
+case 'count':
+
+line(
+`${database.length} TOTAL RECORDS`,
+'success'
+);
+
+break;
+
+case 'headers':
+
+line(
+headers.join(' | ')
+);
+
+break;
+
+case 'history':
+
+cmdHistory.forEach((c,i)=>{
+
+line(`${i+1}. ${c}`);
+
+});
+
+break;
+
+case 'status':
+
+line(
+'DATABASE ONLINE',
+'success'
+);
+
+break;
+
+case 'time':
+
+line(
+new Date().toLocaleTimeString()
+);
+
+break;
+
+case 'date':
+
+line(
+new Date().toLocaleDateString()
+);
+
+break;
+
+case 'whoami':
+
+line(
+'ROOT ACCESS AUTHORIZED',
+'success'
+);
+
+break;
+
+case 'sample':
+
+table(
+database.slice(0,10)
+);
+
+break;
+
+case 'banner':
+
+banner();
+
+break;
+
+case 'reload':
+
+location.reload();
+
+break;
+
+case 'exit':
+
+line(
+'SESSION TERMINATED',
+'error'
+);
+
+setTimeout(()=>{
+
+location.reload();
+
+},800);
+
+break;
+
+default:
+
+line(
+'UNKNOWN COMMAND',
+'error'
+);
+
+}
+
+}
+
+input.addEventListener(
+'keydown',
+e=>{
+
+if(e.key === 'Enter'){
+
+execute(input.value);
+
+input.value = '';
+
+}
+
+if(e.key === 'ArrowUp'){
+
+e.preventDefault();
+
+if(historyIndex > 0){
+
+historyIndex--;
+
+input.value =
+cmdHistory[historyIndex];
+
+}
+
+}
+
+if(e.key === 'ArrowDown'){
+
+e.preventDefault();
+
+if(historyIndex <
+cmdHistory.length - 1){
+
+historyIndex++;
+
+input.value =
+cmdHistory[historyIndex];
+
+}
+
+else{
+
+historyIndex =
+cmdHistory.length;
+
+input.value = '';
+
+}
+
+}
+
+});
+
+banner();
+
+line(
+'SYSTEM BOOT SEQUENCE INITIALIZED',
+'warn'
+);
+
+line(
+'LOADING NEURAL DATABASE...',
+'warn'
+);
+
+line(
+'TYPE "help" FOR COMMANDS',
+'success'
+);
+
+
+
+load();
+
+
+
+</script>
+
+<script>
+
+async function load(){
+
+try{
+
+const snap =
+await db
+.ref('neuralgrid/history')
+.once('value');
+
+const data =
+snap.val();
+
+if(!data){
+
+statusBox.innerHTML =
+'NO DATABASE';
+
+line(
+'DATABASE EMPTY',
+'error'
+);
+
+return;
+
+}
+
+database = [];
+
+Object.values(data)
+.forEach(file=>{
+
+if(file.rows){
+
+database.push(
+...file.rows
+);
+
+}
+
+});
+
+database =
+Object.values(
+database.reduce(
+(a,v)=>{
+
+const key =
+String(
+v.ID ||
+v.Id ||
+v.id ||
+''
+).trim();
+
+if(
+key &&
+!a[key]
+){
+
+a[key] = v;
+
+}
+
+return a;
+
+},
+{}
+)
+);
+
+if(database.length){
+
+headers =
+Object.keys(database[0]);
+
+statusBox.innerHTML =
+'DATABASE READY';
+
+line(
+'CONNECTION ESTABLISHED',
+'success'
+);
+
+line(
+`${database.length} UNIQUE RECORDS INDEXED`,
+'success'
+);
+
+}
+
+}
+
+catch(err){
+
+statusBox.innerHTML =
+'FAILED';
+
+line(
+'DATABASE CONNECTION FAILED',
+'error'
+);
+
+}
+
+}
+
+function searchData(terms){
+
+if(!terms.length){
+
+line(
+'SEARCH KEYWORDS REQUIRED',
+'warn'
+);
+
+return;
+
+}
+
+const filtered =
+database.filter(row=>{
+
+const text =
+headers.map(h=>
+String(row[h] || '')
+.toLowerCase()
+).join(' ');
+
+for(let i=0;i<terms.length;i++){
+
+if(
+!text.includes(
+terms[i].toLowerCase()
+)
+){
+
+return false;
+
+}
+
+}
+
+return true;
+
+});
+
+const uniqueFiltered =
+Object.values(
+filtered.reduce(
+(a,v)=>{
+
+const key =
+String(
+v.ID ||
+v.Id ||
+v.id ||
+''
+).trim();
+
+if(
+key &&
+!a[key]
+){
+
+a[key] = v;
+
+}
+
+return a;
+
+},
+{}
+)
+);
+
+table(
+uniqueFiltered,
+terms
+);
+
+}
+
+
+
+
+document.addEventListener("click",function(){
+  document.querySelector("audio").play();
+},{once:true});
+
+
+</script>
+<audio autoplay loop hidden>
+<source src="https://1024terabox.com/s/1y8kQPPgqXqqaQZrZDc_6yA" type="audio/mpeg">
+</audio>
+</body>
+</html>
